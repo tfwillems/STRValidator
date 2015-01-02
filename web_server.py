@@ -14,6 +14,15 @@ from flask.ext.assets import Environment, Bundle
 
 from subprocess import Popen,PIPE
 
+import argparse
+import os.path
+
+# Set by command line options
+bams      = ""
+bais      = ""
+fasta_dir = ""
+vizalign  = ""
+
 app = Flask(__name__)
 
 # Compresses large responses (useful for alignment viewing)
@@ -28,18 +37,6 @@ js     = Bundle('js/d3.min.js',
                 'js/jquery-2.1.3.min.js',
                 filters='jsmin', output='gen/packed.js')
 assets.register('js_all', js)
-
-bam_dir    = "/Users/tfwillems/Desktop/Club_files/chry/final_callset/chrY_BAMs/filtered_bams/"
-fasta_dir  = "/Users/tfwillems/Desktop/Coding/dbase/"
-bam_suffix = ".chrY.bam"
-bai_suffix = ".chrY.bam.bai"
-vizalign   = "/Users/tfwillems/Desktop/Coding/HipSTR/vizalign"
-pops = ["ASW", "CEU", "CHB", "CHS", "CLM", "FIN", "GBR", "IBS", "JPT", "LWK", "MXL", "PUR", "TSI", "YRI"]
-pops = ["ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN", "GBR", "GIH", "GWD", 
-        "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI"]
-bams = ",".join(map(lambda x: bam_dir + x + bam_suffix, pops))
-bais = ",".join(map(lambda x: bam_dir + x + bai_suffix, pops))
-
 
 @app.route('/')
 def index():
@@ -60,7 +57,7 @@ def get_alignment_info(chroms, starts, stops, sample_lists):
 @app.route('/getbubbleinfo')
 def get_bubble_info():
     info = ""
-    data = open("test_chrY.csv", "r")
+    data = open("data/test_chrY.csv", "r")
     for line in data:
         info += line
     data.close()
@@ -74,4 +71,36 @@ def get_alignments(chroms, starts, stops, sample_lists):
     return response
 
 if __name__== '__main__':
+    parser = argparse.ArgumentParser(description='Web server to compare STR calls and their associated alignments')
+    parser.add_argument("--bams",     type=str, required=True, help='Comma-separated list of bam files')
+    parser.add_argument("--bais",     type=str, required=True, help='Comma-separated list of bam index files. Order must match that of the --bams arguments')
+    parser.add_argument("--fasta",    type=str, required=True, help='Directory containing chromosome fasta files')
+    parser.add_argument("--vizalign", type=str, required=True, help='Full path for vizalign executable')
+    args = parser.parse_args()
+    
+    # Check that .bam files exist
+    bams = args.bams.split(",")
+    for file in bams:
+        if not os.path.isfile(file):
+            exit("ERROR: BAM file %s does not exist"%(file))
+    bams = ",".join(bams)
+
+    # Check that .bai files exist
+    bais = args.bais.split(",")
+    for file in bais:
+        if not os.path.isfile(file):
+            exit("ERROR: BAI file %s does not exist"%(file))
+    bais = ",".join(bais)
+
+    # Check that fasta directory exists
+    if not os.path.isdir(args.fasta):
+        exit("ERROR: Fasta directory does not exist")
+    fasta_dir = args.fasta
+
+    # Check that vizalign path exists
+    if not os.path.isfile(args.vizalign):
+        exit("ERROR: Invalid vizalign path")
+    vizalign = args.vizalign
+
+    # Run flask app
     app.run(host='0.0.0.0', port=6015, debug=False)
