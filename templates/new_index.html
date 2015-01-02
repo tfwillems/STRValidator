@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>STR Concordance Inspector</title>
+
+    {% assets "js_all" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"> </script>
+    {% endassets %}
+
+    <link rel=stylesheet type="text/css" href="/static/css/d3-tip.min.css">
+    <link rel=stylesheet type="text/css" href="/static/css/panelutil.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/alignmentviewer.css">
+    <style>body { font-family: sans-serif; }</style>
+
+    <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+</head>
+
+<body>
+
+<div style="width: 100%; text-align:center">
+<h3 style="display: inline-block">STR Concordance</h3>
+</div>
+
+<script>
+function change(){
+   checked = document.getElementById("diag_check").checked;
+   d3.select("div#chart1").selectAll("circle").attr("r", function(d, i){
+     if (d3.select(this).attr("x") == d3.select(this).attr("y"))
+        if (checked)
+          return scaling_fac*Math.sqrt(d3.select(this).attr("z"));
+        else
+          return 0;
+     else 
+        return d3.select(this).attr("r");
+    });
+}
+</script>
+
+<div style="width: 40%; float:left; text-align:center">
+  <div class="qtlcharts" id="chart1" style="display: inline-block"></div>
+  <div id="slider" style="width: 60%; display: inline-block"></div>
+  <form action="">
+    <input type="checkbox" id="diag_check" value="Bike" onchange = "change()"> Display matching calls (diagonal) <br>
+  </form>
+</div>
+
+<div style="width: 60%; float:right">
+  <h4 style="text-align:center"><a name="Alignments">Alignments</a></h4>
+  <p style="text-align:center">Click on a bubble to visualize the associated alignments</p>
+  <div id="alignments">
+  </div>
+</div>
+
+<script type="text/javascript" src="/static/js/bubbleplot.js"></script>
+<script type="text/javascript"> 
+checked = document.getElementById("diag_check").checked = true;
+draw_bubbleplot(true); 
+scaling_fac = 1.0;
+$(function() {
+          $("#slider").slider({min:Math.log(0.25), max:Math.log(1024), value:Math.log(scaling_fac), step:Math.log(2)});
+    });
+$("#slider").on("slidestop", function(event, ui) { scaling_fac=Math.exp(ui.value);  bubblechart.pointsSelect().attr("r", function(d,i){ 
+if (d3.select(this).attr("r") == 0)
+   return 0;
+else
+   return Math.exp(ui.value)*Math.sqrt(d3.select(this).attr("z"));})});
+</script>
+
+</body>
+</html>
