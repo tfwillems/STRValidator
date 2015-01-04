@@ -22,6 +22,7 @@ bams      = ""
 bais      = ""
 fasta_dir = ""
 vizalign  = ""
+data_file = ""
 
 app = Flask(__name__)
 
@@ -76,6 +77,7 @@ if __name__== '__main__':
     parser.add_argument("--bais",     type=str, required=True, help='Comma-separated list of bam index files. Order must match that of the --bams arguments')
     parser.add_argument("--fasta",    type=str, required=True, help='Directory containing chromosome fasta files')
     parser.add_argument("--vizalign", type=str, required=True, help='Full path for vizalign executable')
+    parser.add_argument("--datafile", type=str, required=True, help="Full path for file containing bubble plot info in .csv format")
     args = parser.parse_args()
     
     # Check that .bam files exist
@@ -101,6 +103,11 @@ if __name__== '__main__':
     if not os.path.isfile(args.vizalign):
         exit("ERROR: Invalid vizalign path")
     vizalign = args.vizalign
+
+    # Check that the data file exists
+    if not os.path.isfile(args.datafile):
+        exit("ERROR: Invalid data file path")
+    data_file = args.datafile
 
     # Run flask app
     app.run(host='0.0.0.0', port=6015, debug=False)
