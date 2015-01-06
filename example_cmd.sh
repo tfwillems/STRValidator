@@ -3,4 +3,4 @@ bais=`ls /Users/tfwillems/Desktop/Club_files/chry/final_callset/chrY_BAMs/filter
 fasta_dir="/Users/tfwillems/Desktop/Coding/dbase/"
 vizalign="/Users/tfwillems/Desktop/Coding/HipSTR/vizalign"
 
-./web_server.py --bams $bams --bais $bais --fasta $fasta_dir --vizalign $vizalign --datafile data/test_chrY.csv
+./str_validator.py --bams $bams --bais $bais --fasta $fasta_dir --vizalign $vizalign --datafile data/test_chrY.csv

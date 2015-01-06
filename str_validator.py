@@ -57,7 +57,6 @@ def create_app(bams, bais, fasta_dir, vizalign, data_file):
     # Check that .bam files exist
     bams = args.bams.split(",")
     for file in bams:
-        print(file)
         if not os.path.isfile(file):
             exit("ERROR: BAM file %s does not exist"%(file))
     app.config['bams'] = ",".join(bams)
