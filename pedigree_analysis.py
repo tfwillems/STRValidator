@@ -7,6 +7,7 @@ import numpy
 import matplotlib.pyplot as plt
 import vcf
 from matplotlib.backends.backend_pdf import PdfPages
+from fractions import Fraction
 
 class TRIO:
     def __init__(self, child, mother, father):
@@ -74,9 +75,52 @@ def is_mendelian(a11, a12, a21, a22, a31, a32):
     else:
         return False
 
+def draw_bp_histogram(discordant_counts, pdfpage):
+    # Create histogram of father-son differences                                                                                                                                 
+    bp_diff_counts     = [collections.defaultdict(int) for _ in xrange(6)]
+    repeat_diff_counts = [collections.defaultdict(int) for _ in xrange(6)]
+    out_frame_count    = 0
+    in_frame_count     = 0
+    for key,val in discordant_counts.items():
+        bp_diff_counts[key[2]-1][key[1]-key[0]] += val
+        repeat_diff_counts[key[2]-1][Fraction(key[1]-key[0], key[2])] += val
+    for xlabel,diff_counts,in_frame in zip(["bps", "repeats"],
+                                           [bp_diff_counts, repeat_diff_counts],
+                                           [lambda bp,period: bp%period == 0, lambda rep,period: int(rep)==float(rep) ]):
+        fig = plt.figure()
+        ax  = fig.add_subplot(111)
+        diffs = sorted(list(set(reduce(lambda x,y:x+y, map(lambda z: z.keys(), diff_counts)))))
+        colors = ['c', 'r', 'g', 'y', 'b', 'm']
+        heights = numpy.zeros(len(diffs))
+        for i in xrange(6):
+            vals = [diff_counts[i][x] for x in diffs]
+            if sum(vals) == 0:
+                continue
+
+            in_frame_trips  = filter(lambda x: in_frame(x[0], i+1), zip(diffs, vals, heights))
+            out_frame_trips = filter(lambda x: not in_frame(x[0], i+1), zip(diffs, vals, heights))
+            if len(in_frame_trips) != 0:
+                x,y,h = zip(*in_frame_trips)
+                in_frame_count += sum(y)
+                ax.bar(x, y, bottom=h, align='center', color=colors[i], width=0.25, label=str(i+1))
+            if len(out_frame_trips) != 0:
+                x,y,h = zip(*out_frame_trips)
+                out_frame_count += sum(y)
+                ax.bar(x, y, bottom=h, align='center', color=colors[i], width=0.25, label=str(i+1), hatch='//')
+            heights += vals
+        ax.xaxis.set_ticks_position('bottom')
+        ax.yaxis.set_ticks_position('left')
+        ax.set_xlabel(r"$father-son ("+xlabel+")$")
+        ax.set_ylabel(r"$n_{calls}$")
+        ax.legend()
+        pdfpage.savefig(fig)
+    print("IN FRAME=%d, OUT FRAME=%d"%(in_frame_count/2, out_frame_count/2))
+
+
 class CHRY_STATS:
-    def __init__(self, father_son_pairs):
-        self.pairs = father_son_pairs
+    def __init__(self, father_son_pairs, call_output):
+        self.pairs        = father_son_pairs
+        self.output_calls = open(call_output, "w")
 
     def initialize(self, vcf_reader):
         sample_indices    = dict(zip(vcf_reader.samples, range(len(vcf_reader.samples))))
@@ -90,21 +134,28 @@ class CHRY_STATS:
         self.missing_data_skip_counts = numpy.zeros(len(self.pair_indices))
         self.het_gt_skip_counts       = numpy.zeros(len(self.pair_indices))
 
-        self.num_concordant = 0
-        self.num_discordant = 0
-        self.pair_info      = {}
+        self.num_concordant    = 0
+        self.num_discordant    = 0
+        self.pair_info         = {}
+        self.discordant_counts = collections.defaultdict(int)
+        self.call_count        = 0
 
     def process_record(self, record):
+        motif_len = len(record.INFO['MOTIF'])
         for i in xrange(len(self.pair_indices)):
             if any(map(lambda x: record.samples[x]['GT'] is None, self.pair_indices[i])):
                 self.missing_data_skip_counts[i] += 1
                 continue
 
+            self.call_count += 1
             father = record.samples[self.pair_indices[i][0]]
             son    = record.samples[self.pair_indices[i][1]]
-
             gb_1a, gb_1b = map(int, father['GB'].split("/"))
             gb_2a, gb_2b = map(int, son['GB'].split("/"))
+            self.output_calls.write("%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n"%(self.call_count, record.CHROM, record.POS, record.INFO['END'], 
+                                                                                        gb_1a + gb_1b, gb_2a + gb_2b,
+                                                                                        gb_1a,  gb_1b, gb_2a,  gb_2b, father.sample, son.sample))
+            
             if gb_1a != gb_1b or gb_2a != gb_2b:
                 self.het_gt_skip_counts[i] += 1
                 if gb_1a != gb_1b:
@@ -115,6 +166,7 @@ class CHRY_STATS:
 
             if gb_1a != gb_2a:
                 self.num_discordant += 1
+                self.discordant_counts[(gb_1a, gb_2a, motif_len)] +=1
                 print("chrY\t%d\t%d\t%s\t%s\t%s"%(record.POS, record.INFO["END"], 
                                                   father.sample + "," + son.sample,
                                                   str(gb_1a) + "," + str(gb_2b), "DISCORDANT"))
@@ -133,6 +185,7 @@ class CHRY_STATS:
         else:
             print("WARNING: No chrY calls were applicable for comparison")
 
+        # Create bubble plot using all data
         fig  = plt.figure()
         ax   = fig.add_subplot(111)
         x, y = zip(*self.pair_info.keys())
@@ -142,7 +195,11 @@ class CHRY_STATS:
         ax.set_ylabel("Son's genotype (bp)")
         ax.xaxis.set_ticks_position('bottom')
         ax.yaxis.set_ticks_position('left')
+        ax.plot(numpy.arange(min(x)-5, max(x)+5, 1.0), numpy.arange(min(y)-5, max(y)+5, 1.0), linestyle='--', color='k')
         pdfpage.savefig(fig)
+        
+        # Create histogram of father-son differences
+        draw_bp_histogram(self.discordant_counts, pdfpage)
 
         viz_output = open(output_prefix+"_chrY.csv", "w")
         viz_output.write(",".join(["X","Y", "CHROMS", "STARTS", "STOPS", "SAMPLES"]) + "\n")
@@ -150,6 +207,8 @@ class CHRY_STATS:
             chroms, positions, ends, samples = map(list, zip(*val))
             viz_output.write(",".join([str(key[0]), str(key[1]), "_".join(chroms), "_".join(map(str, positions)), "_".join(map(str, ends)), "_".join(map(str, samples))]) + "\n")
         viz_output.close()
+
+        self.output_calls.close()
 
 
 class MENDELIAN_STATS:
@@ -383,6 +442,7 @@ def main():
     print("Invocation syntax: python pedigree_analysis.py 1kg_pedigree_file.txt vcf_file.vcf output_file.pdf") 
     trios, father_son_pairs = read_1kg_pedigree_file(sys.argv[1], header=True)
     vcf_reader = vcf.Reader(filename=sys.argv[2])
+    call_stats = sys.argv[3]
     samples    = vcf_reader.samples
     trios_with_data = []
     pairs_with_data = []
@@ -401,7 +461,7 @@ def main():
     quality_bins   = numpy.arange(0.0, 1.0, 0.1)
     quality_thresh = [0.9, 0.5, 0.5, 0.5, 0.5, 0.5]
     max_coverage   = 100
-    processors     = [CHRY_STATS(pairs_with_data)]
+    processors     = [CHRY_STATS(pairs_with_data, call_stats)]
     #mend_stats     = MENDELIAN_STATS(trios_with_data, coverage_bins, quality_bins, max_coverage, quality_thresh)
     for proc in processors:
         proc.initialize(vcf_reader)
