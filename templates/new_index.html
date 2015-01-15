@@ -16,6 +16,8 @@
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/d3-tip.min.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/panelutil.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/alignmentviewer.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap-select.css') }}">
     
     <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
     <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
@@ -40,13 +42,32 @@ function change(){
         return d3.select(this).attr("r");
     });
 }
+
+function update_comparison(){
+$('#alignments').html('');
+checked = document.getElementById("diag_check").checked;
+var comp = document.getElementById("active_comparison").value;
+var url = "/set_comparison/" + comp;
+$.getJSON(url, function(data) {
+  d3.select("div#chart1").selectAll("svg").remove();
+  draw_bubbleplot(checked);
+});
+}
+
 </script>
 
 <div style="width: 40%; float:left; text-align:center">
+  <h4>Comparison</h4>
+  <select id="active_comparison" class="selectpicker" data-style="btn-primary" data-width="125px" onchange="update_comparison()">
+    {% for comp in comparisons %}
+    <option>{{comp}}</option>
+    {% endfor %}
+  </select>
+
   <div class="qtlcharts" id="chart1" style="display: inline-block"></div>
   <div id="slider" style="width: 60%; display: inline-block"></div>
   <form action="">
-    <input type="checkbox" id="diag_check" value="Bike" onchange = "change()"> Display matching calls (diagonal) <br>
+    <input type="checkbox" id="diag_check" onchange = "change()"> Display matching calls (diagonal) <br>
   </form>
 </div>
 
@@ -58,6 +79,11 @@ function change(){
 </div>
 
 <script type="text/javascript"> 
+  $(document).ready(function(e) {
+  $('.selectpicker').selectpicker();
+  });
+
+
 checked = document.getElementById("diag_check").checked = true;
 draw_bubbleplot(true); 
 scaling_fac = 1.0;
