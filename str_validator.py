@@ -54,7 +54,7 @@ class DiploidCalls(db.Model):
 
 @admin.route('/')
 def index():
-    return render_template("new_index.html")
+    return render_template("new_index.html", comparisons=current_app.config['COMPARISONS'].keys())
 
 def get_alignment_info(chroms, starts, stops, sample_lists, annot_lists):
     input        = "\n".join(map(lambda x: "\t".join(x), zip(chroms, starts, stops, sample_lists, annot_lists)))
@@ -66,19 +66,21 @@ def get_alignment_info(chroms, starts, stops, sample_lists, annot_lists):
 
 @admin.route('getbubbleinfo')
 def get_bubble_info():
+    schema = current_app.config['ACTIVE_DB']
     # Compute bubble counts if not precomputed
-    if current_app.config['BUBBLE_COUNTS'] is None:
-        hap_counts = collections.defaultdict(int)
-        for record in db.session().query(HaploidCalls):
-            hap_counts[(record.total_one, record.total_two)] += 1
-        current_app.config['BUBBLE_COUNTS'] = hap_counts        
-    vals = map(lambda x: [x[0][0], x[0][1], x[1]], current_app.config['BUBBLE_COUNTS'].items())
+    if schema not in current_app.config['BUBBLE_COUNTS']:
+        bubble_counts = collections.defaultdict(int)
+        for record in db.session().query(schema):
+            bubble_counts[(record.total_one, record.total_two)] += 1
+        current_app.config['BUBBLE_COUNTS'][schema] = bubble_counts        
+    vals = map(lambda x: [x[0][0], x[0][1], x[1]], current_app.config['BUBBLE_COUNTS'][schema].items())
     return jsonify(result=vals)
 
 @admin.route('getalignments/<x>/<y>')
 def get_alignments(x, y):
-    x, y = int(x), int(y)
-    res = db.session.query(HaploidCalls).filter(HaploidCalls.total_one == x, HaploidCalls.total_two == y)
+    x, y   = int(x), int(y)
+    schema = current_app.config['ACTIVE_DB']
+    res = db.session.query(schema).filter(schema.total_one == x, schema.total_two == y)
     chroms, starts, stops, sample_lists, annot_lists = [], [], [], [], []
     for record in res:
         chroms.append(record.chrom)
@@ -95,6 +97,11 @@ def get_alignments(x, y):
     response = make_response(res)
     response.headers.add('Access-Control-Allow-Origin','*')
     return response
+
+@admin.route('set_comparison/<comp>')
+def set_comparison(comp):
+    current_app.config['ACTIVE_DB'] = current_app.config['COMPARISONS'][comp]
+    return jsonify(success="TRUE")
 
 
 def create_app(bams, bais, fasta_dir, vizalign):
@@ -133,12 +140,16 @@ def create_app(bams, bais, fasta_dir, vizalign):
                     'js/panelutil.js',  
                     'js/scatterplot.js',
                     'js/jquery-2.1.3.min.js',
+                    'js/bootstrap.min.js',
+                    'js/bootstrap-select.js',
                     'js/bubbleplot.js',
                     filters='jsmin', output='gen/packed.js')
     assets.register('str_validator_js_all', js)
 
-    app.config['BUBBLE_COUNTS']           = None
+    app.config['BUBBLE_COUNTS']           = {}
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///call_data.sqlite'
+    app.config['ACTIVE_DB']               = HaploidCalls
+    app.config['COMPARISONS']             = {"Haploid male" : HaploidCalls, "Marshfield" : DiploidCalls}
     db.init_app(app)
     with app.app_context():
         db.create_all()
