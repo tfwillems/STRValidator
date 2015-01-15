@@ -4,19 +4,23 @@
     <meta charset="utf-8">
     <title>STR Concordance Inspector</title>
 
-    {% assets "js_all" %}
+    {% assets "str_validator_js_all" %}
     <script type="text/javascript" src="{{ ASSET_URL }}"> </script>
     {% endassets %}
 
-    <link rel=stylesheet type="text/css" href="/static/css/d3-tip.min.css">
-    <link rel=stylesheet type="text/css" href="/static/css/panelutil.css">
-    <link rel="stylesheet" type="text/css" href="/static/css/alignmentviewer.css">
-    <style>body { font-family: sans-serif; }</style>
-
-    <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <!--
+    <link rel="stylesheet" type="text/css" href="static/css/d3-tip.min.css">
+    <link rel="stylesheet" type="text/css" href="static/css/panelutil.css">
+    <link rel="stylesheet" type="text/css" href="static/css/alignmentviewer.css">
+    -->
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/d3-tip.min.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/panelutil.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/alignmentviewer.css') }}">
+    
     <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-</head>
-
+    <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <style>body { font-family: sans-serif; }</style>
+    </head>
 <body>
 
 <div style="width: 100%; text-align:center">
@@ -48,12 +52,11 @@ function change(){
 
 <div style="width: 60%; float:right">
   <h4 style="text-align:center"><a name="Alignments">Alignments</a></h4>
-  <p style="text-align:center">Click on a bubble to visualize the associated alignments</p>
+  <p style="text-align:center" id="click_desc">Click on a bubble to visualize the associated alignments</p>
   <div id="alignments">
   </div>
 </div>
 
-<script type="text/javascript" src="/static/js/bubbleplot.js"></script>
 <script type="text/javascript"> 
 checked = document.getElementById("diag_check").checked = true;
 draw_bubbleplot(true); 
