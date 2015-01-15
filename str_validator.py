@@ -97,7 +97,7 @@ def get_alignments(x, y):
     return response
 
 
-def create_app(bams, bais, fasta_dir, vizalign, data_file):
+def create_app(bams, bais, fasta_dir, vizalign):
     app = Flask(__name__)
 
     # Check that .bam files exist
@@ -123,11 +123,6 @@ def create_app(bams, bais, fasta_dir, vizalign, data_file):
     if not os.path.isfile(vizalign):
         exit("ERROR: Invalid vizalign path")
     app.config['vizalign'] = vizalign
-
-    # Check that the data file exists
-    if not os.path.isfile(data_file):
-        exit("ERROR: Invalid file path for bubble plot data")
-    app.config['data_file'] = data_file
 
     app.register_blueprint(admin)
     Compress(app) # Compresses large responses (useful for alignment viewing)
@@ -157,11 +152,10 @@ if __name__== '__main__':
     parser.add_argument("--bais",     type=str, required=True, help='Comma-separated list of bam index files. Order must match that of the --bams arguments')
     parser.add_argument("--fasta",    type=str, required=True, help='Directory containing chromosome fasta files')
     parser.add_argument("--vizalign", type=str, required=True, help='Full path for vizalign executable')
-    parser.add_argument("--datafile", type=str, required=True, help="Full path for file containing bubble plot info in .csv format")
     args = parser.parse_args()
 
     # Create app
-    my_app = create_app(args.bams, args.bais, args.fasta, args.vizalign, args.datafile)
+    my_app = create_app(args.bams, args.bais, args.fasta, args.vizalign)
 
     # Run it
     my_app.run(host='0.0.0.0', port=6015, debug=True)
