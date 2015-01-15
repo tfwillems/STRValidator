@@ -83,7 +83,10 @@ $.get('/getbubbleinfo')
   }).attr("z", function(d,i) {
     return sizes[i];
   }).attr("r", function(d,i){
-    return scaling_fac*Math.sqrt(sizes[i]);
+    if (!inc_diag && d3.select(this).attr("x") == d3.select(this).attr("y"))
+	 return 0;
+     else
+	 return scaling_fac*Math.sqrt(sizes[i]);
   }).on("mouseover.paneltip", indtip.show).on("mouseout.paneltip", indtip.hide);
 })
 .fail(function(data) {
