@@ -211,7 +211,8 @@ class CALC_OPTIMAL_OFFSETS_OTHER:
 
 
 class MARSHFIELD_COMPARATOR:
-    def __init__(self, marshfield_reader, corrections={}, norm_by_period=False, scale_by_width=False, plot_line=True, inc_ref_len=False, debug_file=None):
+    def __init__(self, marshfield_reader, corrections={}, norm_by_period=False, scale_by_width=False, 
+                 plot_line=True, inc_ref_len=False, debug_file=None, output_call_data=None):
         self.marshfield_reader = marshfield_reader
         self.corrections       = corrections
         self.norm_by_period    = norm_by_period
@@ -219,6 +220,13 @@ class MARSHFIELD_COMPARATOR:
         self.plot_line         = plot_line
         self.debug_file        = debug_file
         self.inc_ref_len       = inc_ref_len
+
+        if output_call_data is not None:
+            self.output_calls = True
+            self.call_output  = open(output_call_data, "w")
+        else:
+            self.output_calls = False
+
         
     def initialize(self, vcf_reader):
         sample_indices = dict(map(lambda x: reversed(x), enumerate(vcf_reader.samples)))
@@ -245,6 +253,9 @@ class MARSHFIELD_COMPARATOR:
         self.read_depths          = []
         self.quality_scores       = []
         self.heterozygotes        = []
+        self.fixable = 0
+        self.fixable_counts = collections.defaultdict(int)
+        self.call_count = 0
 
     def process_record(self, record):
         locus_id = record.CHROM.replace("chr", "") + ":" + str(record.POS)
@@ -278,6 +289,12 @@ class MARSHFIELD_COMPARATOR:
             locus_type = categorize_locus(gb_1a, gb_1b)
             self.total_type_counts[locus_type] += 1
             
+            if self.output_calls:
+                self.call_count += 1
+                self.call_output.write("%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n"%(self.call_count, record.CHROM, record.POS, record.INFO['END'], 
+                                                                                           gb_1a + gb_1b, gb_2a + gb_2b,
+                                                                                           gb_1a,  gb_1b, gb_2a,  gb_2b, info.sample, info.sample))
+
             if locus_type == 0 or locus_type == 1:
                 # Homzygous ref or homzygous non-ref allele
                 type_index = 0 if gb_1a == 0 else 1
@@ -292,6 +309,14 @@ class MARSHFIELD_COMPARATOR:
                     
                 if gb_2a == gb_2b:
                     sub_index = 0 if (gb_2a == gb_1a or gb_2a == gb_1b) else 1
+
+
+                    if len(info['ALLREADS'].split(';')) == 2:
+                        tokens = info['ALLREADS'].split(';')
+                        self.fixable_counts[(int(tokens[0].split('|')[1]), int(tokens[1].split('|')[1]))] += 1
+                        self.fixable += 1
+                    #print(gb_1a, gb_1b, gb_2a, gb_2b, info['ALLREADS'].split(';'))
+
                 else:
                     corr_count = 0 + (gb_2a == gb_1a) + (gb_2a == gb_1b) + (gb_2b == gb_1a) + (gb_2b == gb_1b)
                     sub_index  = corr_count + 2
@@ -347,6 +372,9 @@ class MARSHFIELD_COMPARATOR:
 
             
     def finish(self, pdfpage):
+        if self.output_calls:
+            self.call_output.close()
+
         for pair in sorted(self.accuracy_per_locus.items(), key = lambda x: x[1][2]):
             print(pair[0], pair[1])
 
@@ -480,6 +508,8 @@ class MARSHFIELD_COMPARATOR:
         for i in xrange(4):
             print(type_names[i] + "\t" + str(self.call_types[i]) + "\t" + str(1.0*numpy.array(self.call_types[i])/sum(self.call_types[i])))
         print("\n")
+        print("FIXABLE=%d"%(self.fixable))
+        print(self.fixable_counts)
 
         print("R^2 stats:")
         for i in xrange(4):
@@ -730,7 +760,8 @@ def main():
 
     # Assess the concordance and create a bubble plot
     corrections = read_corrections(corr_file)
-    marsh_comp  = MARSHFIELD_COMPARATOR(marsh_reader, corrections=corrections, norm_by_period=False, scale_by_width=False, plot_line=True, inc_ref_len=True, debug_file=args.debug)
+    marsh_comp  = MARSHFIELD_COMPARATOR(marsh_reader, corrections=corrections, norm_by_period=False, scale_by_width=False, 
+                                        plot_line=True, inc_ref_len=True, debug_file=args.debug, output_call_data="testing_out.txt")
 
     #dbase.add_filter(LOCUS_FILTER(REF_LENGTH(),   lambda x: x >= args.min_len))
     #dbase.add_filter(LOCUS_FILTER(REF_LENGTH(),   lambda x: x <= args.max_len))
