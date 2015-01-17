@@ -54,7 +54,8 @@ class DiploidCalls(db.Model):
 
 @admin.route('/')
 def index():
-    return render_template("new_index.html", comparisons=current_app.config['COMPARISONS'].keys())
+    print(current_app.config['ANALYSES'])
+    return render_template("new_index.html", comparisons=current_app.config['COMPARISONS'].keys(), analyses=current_app.config['ANALYSES'])
 
 def get_alignment_info(chroms, starts, stops, sample_lists, annot_lists):
     input        = "\n".join(map(lambda x: "\t".join(x), zip(chroms, starts, stops, sample_lists, annot_lists)))
@@ -67,14 +68,18 @@ def get_alignment_info(chroms, starts, stops, sample_lists, annot_lists):
 @admin.route('getbubbleinfo')
 def get_bubble_info():
     schema = current_app.config['ACTIVE_DB']
-    # Compute bubble counts if not precomputed
-    if schema not in current_app.config['BUBBLE_COUNTS']:
-        bubble_counts = collections.defaultdict(int)
-        for record in db.session().query(schema):
-            bubble_counts[(record.total_one, record.total_two)] += 1
-        current_app.config['BUBBLE_COUNTS'][schema] = bubble_counts        
-    vals = map(lambda x: [x[0][0], x[0][1], x[1]], current_app.config['BUBBLE_COUNTS'][schema].items())
-    return jsonify(result=vals)
+    res    = db.session.query(schema.total_one, schema.total_two, func.count(schema.total_one)).group_by(schema.total_one, schema.total_two).all()
+    res    = sorted(res, key=lambda x:-x[2])
+    return jsonify(result=res)
+
+@admin.route('getdiffinfo')
+def get_diff_info():
+    schema      = current_app.config['ACTIVE_DB']
+    res         = db.session.query(schema.total_one, schema.total_two, func.count(schema.total_one)).group_by(schema.total_one, schema.total_two).all()
+    diff_counts = collections.defaultdict(int)
+    for item in res:
+        diff_counts[item[0]-item[1]] += item[2]
+    return jsonify(result=zip(diff_counts.items()))
 
 @admin.route('getalignments/<x>/<y>')
 def get_alignments(x, y):
@@ -146,10 +151,10 @@ def create_app(bams, bais, fasta_dir, vizalign):
                     filters='jsmin', output='gen/packed.js')
     assets.register('str_validator_js_all', js)
 
-    app.config['BUBBLE_COUNTS']           = {}
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///call_data.sqlite'
     app.config['ACTIVE_DB']               = HaploidCalls
-    app.config['COMPARISONS']             = {"Haploid male" : HaploidCalls, "Marshfield" : DiploidCalls}
+    app.config['COMPARISONS']             = {"Father-son YSTRs" : HaploidCalls, "Marshfield" : DiploidCalls}
+    app.config['ANALYSES']                = ["Bubble plot", "Bar plot"]
     db.init_app(app)
     with app.app_context():
         db.create_all()
