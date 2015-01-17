@@ -55,7 +55,18 @@ class DiploidCalls(db.Model):
 @admin.route('/')
 def index():
     print(current_app.config['ANALYSES'])
-    return render_template("new_index.html", comparisons=current_app.config['COMPARISONS'].keys(), analyses=current_app.config['ANALYSES'])
+    return render_template("index.html", comparisons=current_app.config['COMPARISONS'].keys(), analyses=current_app.config['ANALYSES'])
+
+@admin.route('getbubbleplot')
+def get_bubbleplot():
+    return render_template("bubbleplot.html")
+    
+@admin.route('getplot/<plot_type>')
+def get_plot(plot_type):
+    if plot_type == "Bubble plot":
+        return get_bubbleplot()
+    else:
+        exit("Invalid plot type %s"%(plot_type))
 
 def get_alignment_info(chroms, starts, stops, sample_lists, annot_lists):
     input        = "\n".join(map(lambda x: "\t".join(x), zip(chroms, starts, stops, sample_lists, annot_lists)))
@@ -145,6 +156,7 @@ def create_app(bams, bais, fasta_dir, vizalign):
                     'js/panelutil.js',  
                     'js/scatterplot.js',
                     'js/jquery-2.1.3.min.js',
+                    'js/jquery-ui.js',
                     'js/bootstrap.min.js',
                     'js/bootstrap-select.js',
                     'js/bubbleplot.js',

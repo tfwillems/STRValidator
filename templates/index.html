@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>STR Concordance Inspector</title>
+
+    {% assets "str_validator_js_all" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"> </script>
+    {% endassets %}
+
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/d3-tip.min.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/panelutil.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/alignmentviewer.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap-select.css') }}">
+    
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+    <style>body { font-family: sans-serif; }</style>
+    </head>
+<body>
+
+<div style="width: 100%; text-align:center">
+<h3 style="display: inline-block">STR Concordance Inspector</h3>
+</div>
+
+
+<script>
+  function change_plot(){
+  $('#alignments').html('');
+  var comp  = document.getElementById("active_comparison").value;
+  var url   = "/set_comparison/" + comp;
+  $.getJSON(url, function(data) {
+  d3.select("div#chart1").selectAll("svg").remove();
+      var plot_type = document.getElementById("active_analysis").value; 
+      var url       = "getplot/" + plot_type;
+      $.get(url)
+        .done(function(data) {
+          $("#plot_container").html(data);
+        })
+        .fail(function(data) {
+          alert("Something went wrong" + data);
+        });
+     });
+}
+</script>
+
+<div style="width: 40%; float:left; text-align:center">
+  <div class="col-md-5 col-md-offset-1">
+    <h4>Comparison</h4>
+    <select id="active_comparison" class="selectpicker" data-style="btn-primary" data-width="175px" onchange="change_plot()">
+      {% for comp in comparisons %}
+      <option>{{comp}}</option>
+      {% endfor %}
+    </select>
+  </div>
+  
+  <div class="col-md-1"> 
+    <h4>Analysis</h4>
+    <select id="active_analysis" class="selectpicker" data-style="btn-primary" data-width="125px" onchange="change_plot()()">
+      {% for analysis in analyses %}
+      <option>{{analysis}}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="plot_container"> </div>
+</div>
+
+<div style="width: 60%; float:right">
+  <h4 style="text-align:center">Alignments</h4>
+  <p style="text-align:center" id="click_desc">Click on a bubble to visualize the associated alignments</p>
+  <div id="alignments">
+  </div>
+</div>
+
+<script type="text/javascript"> 
+  $(document).ready(function(e) {
+  $('.selectpicker').selectpicker();
+  });
+
+  
+  var url  = "getbubbleplot";
+  $.get(url)
+  .done(function(data) {
+  $("#plot_container").html(data);
+  })
+  .fail(function(data) {
+  alert("Something went wrong" + data);
+  });
+  
+</script>
+
+</body>
+</html>
