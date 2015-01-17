@@ -1,4 +1,4 @@
-function draw_bubbleplot(inc_diag){
+function draw_bubbleplot(inc_diag, min_calls, max_calls){
 var h, halfh, halfw, margin, totalh, totalw, w;
 
 h = 300;
@@ -85,6 +85,8 @@ $.get('/getbubbleinfo')
   }).attr("r", function(d,i){
     if (!inc_diag && d3.select(this).attr("x") == d3.select(this).attr("y"))
 	 return 0;
+    else if (d3.select(this).attr("z") < min_calls || d3.select(this).attr("z") > max_calls)
+	return 0;
      else
 	 return scaling_fac*Math.sqrt(sizes[i]);
   }).on("mouseover.paneltip", indtip.show).on("mouseout.paneltip", indtip.hide);
