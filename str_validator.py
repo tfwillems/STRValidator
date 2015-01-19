@@ -120,7 +120,7 @@ def extract_alignments(query):
 def get_bubble_alignments(x, y):
     x, y   = int(x), int(y)
     schema = current_app.config['ACTIVE_DB']
-    res = db.session.query(schema).filter(schema.total_one == x, schema.total_two == y)
+    res = db.session.query(schema).filter(schema.total_one == x, schema.total_two == y).limit(current_app.config['MAX_ALIGNMENTS'])
     return extract_alignments(res)
 
 @admin.route('getdiffalignments/<diff>')
@@ -128,11 +128,11 @@ def get_diff_alignments(diff):
     diff   = int(diff)
     schema = current_app.config['ACTIVE_DB']
     if diff == current_app.config['MIN_BP_DIFF']:
-        res = db.session.query(schema).filter(schema.total_one - schema.total_two <= diff)
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two <= diff).limit(current_app.config['MAX_ALIGNMENTS'])
     elif diff == current_app.config['MAX_BP_DIFF']:
-        res = db.session.query(schema).filter(schema.total_one - schema.total_two >= diff)
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two >= diff).limit(current_app.config['MAX_ALIGNMENTS'])
     else:
-        res = db.session.query(schema).filter(schema.total_one - schema.total_two == diff)
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two == diff).limit(current_app.config['MAX_ALIGNMENTS'])
     return extract_alignments(res)
 
 @admin.route('set_comparison/<comp>')
@@ -190,8 +190,9 @@ def create_app(bams, bais, fasta_dir, vizalign):
     app.config['ACTIVE_DB']               = HaploidCalls
     app.config['COMPARISONS']             = {"Father-son YSTRs" : HaploidCalls, "Marshfield" : DiploidCalls}
     app.config['ANALYSES']                = ["Bubble plot", "Bar plot"]
-    app.config['MIN_BP_DIFF'] = -12
-    app.config['MAX_BP_DIFF'] = 12
+    app.config['MIN_BP_DIFF']             = -12
+    app.config['MAX_BP_DIFF']             = 12
+    app.config['MAX_ALIGNMENTS']          = 25
     db.init_app(app)
     with app.app_context():
         db.create_all()
