@@ -35,7 +35,7 @@ function compute_scaling_factor(x, y, counts){
 function gen_alignments(x, y) {
     $('#click_desc').html('');
     $('#alignments').html('<img src="/static/loading_icon.gif" style="display: block; margin: auto;">');
-    var url  = "getalignments/" + x + "/" + y;
+    var url  = "getbubblealignments/" + x + "/" + y;
     $.get(url)
 	.done(function(data) {
 	    $("#alignments").html(data);
@@ -48,8 +48,7 @@ function gen_alignments(x, y) {
 $.get('/getbubbleinfo')
 .done(function(data){
   var data = data.result.map(function(d){ return d3.values(d);});
-  var min_x, max_x, min_y, max_y, min_v, max_v, chroms, starts, ends, samples;
-
+  var min_x, max_x, min_y, max_y, min_v, max_v;
   min_x   = d3.min(data.map(function(d){ return +d[0];}));
   max_x   = d3.max(data.map(function(d){ return +d[0];}));
   min_y   = d3.min(data.map(function(d){ return +d[1];}));
@@ -59,7 +58,9 @@ $.get('/getbubbleinfo')
   sizes   = data.map(function(d){ return +d[2];});
   bubblechart = scatterplot().xvar(0).yvar(1).xlab("lobSTR").ylab("Capillary").height(h).width(w).margin(margin)
       .pointcolor("orange").xNA({handle:false}).yNA({handle:false}).xlim([min_v-5,max_v+5]).ylim([min_v-5, max_v+5]).title("Bubble plot");
-  d3.select("div#chart1").datum({
+
+  d3.select('#bubble_plot_container svg').datum({
+      ///d3.select("div#chart1").datum({
     data: data
   }).call(bubblechart);
 

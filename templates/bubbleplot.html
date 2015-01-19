@@ -35,16 +35,24 @@ min_size = d3.min(sizes)
 
 
 <div id="bubble_plot_container">
-  <div class="qtlcharts" id="chart1" style="display: inline-block"></div>
-  <div id="size_slider" style="width: 40%; display: inline-block"></div>
-  <div id="size_label"  style="width: 15%; display: inline-block"> <font color="blue" size="2">Size Scale:</font></div>
-  <div id="size_value"  style="width: 5%; display: inline-block">1.0 </div>
-  <div id="min_slider"  style="width: 40%; display: inline-block"></div> 
-  <div id="min_label"   style="width: 15%; display: inline-block">  <font color="blue" size="2">Min Calls:</font></div>
-  <div id="min_value"   style="width: 5%; display: inline-block">1.0 </div>
-  <div id="max_slider"  style="width: 40%; display: inline-block"></div>
-  <div id="max_label"   style="width: 15%; display: inline-block">  <font color="blue" size="2">Max Calls:</font></div>
-  <div id="max_value"   style="width: 5%; display: inline-block">1.0 </div>
+  <div class="qtlcharts" id="chart1" style="display: inline-block">
+     <svg style="height: 380px; width: 420px;"></svg>
+  </div>
+  <div class="row">
+    <div id="size_slider" style="width: 40%; display: inline-block"></div>
+    <div id="size_label"  style="width: 15%; display: inline-block"> <font color="blue" size="2">Size Scale:</font></div>
+    <div id="size_value"  style="width: 5%; display: inline-block">1.0 </div>
+  </div>
+  <div class="row">
+    <div id="min_slider"  style="width: 40%; display: inline-block"></div> 
+    <div id="min_label"   style="width: 15%; display: inline-block">  <font color="blue" size="2">Min Calls:</font></div>
+    <div id="min_value"   style="width: 5%; display: inline-block">1.0 </div>
+  </div>
+  <div class="row">
+    <div id="max_slider"  style="width: 40%; display: inline-block"></div>
+    <div id="max_label"   style="width: 15%; display: inline-block">  <font color="blue" size="2">Max Calls:</font></div>
+    <div id="max_value"   style="width: 5%; display: inline-block">1.0 </div>
+  </div>
   <form action="">
     <input type="checkbox" id="diag_check" onchange = "update_bubbleplot()"> Display matching calls (diagonal) <br>
   </form>
