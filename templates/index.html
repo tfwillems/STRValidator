@@ -8,14 +8,33 @@
     <script type="text/javascript" src="{{ ASSET_URL }}"> </script>
     {% endassets %}
 
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/nv.d3.css') }}">
+    
+
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/d3-tip.min.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/panelutil.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/alignmentviewer.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap-select.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/jquery-ui.css') }}">
     
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-    <style>body { font-family: sans-serif; }</style>
+    <style>
+      body { font-family: sans-serif; }
+
+      .nvtooltip { margin-top: 100px; }
+
+      .nvtooltip.x-nvtooltip,
+      .nvtooltip.y-nvtooltip {
+      padding: 0px;
+      }
+
+      .nvtooltip p {
+      margin: 0;
+      padding: 5px 14px;
+      text-align: center;
+      }
+
+    </style>
     </head>
 <body>
 
@@ -56,7 +75,7 @@
   
   <div class="col-md-1"> 
     <h4>Analysis</h4>
-    <select id="active_analysis" class="selectpicker" data-style="btn-primary" data-width="125px" onchange="change_plot()()">
+    <select id="active_analysis" class="selectpicker" data-style="btn-primary" data-width="125px" onchange="change_plot()">
       {% for analysis in analyses %}
       <option>{{analysis}}</option>
       {% endfor %}
@@ -74,20 +93,8 @@
 </div>
 
 <script type="text/javascript"> 
-  $(document).ready(function(e) {
-  $('.selectpicker').selectpicker();
-  });
-
-  
-  var url  = "getbubbleplot";
-  $.get(url)
-  .done(function(data) {
-  $("#plot_container").html(data);
-  })
-  .fail(function(data) {
-  alert("Something went wrong" + data);
-  });
-  
+  $(document).ready(function(e) { $('.selectpicker').selectpicker(); });
+  change_plot();
 </script>
 
 </body>
