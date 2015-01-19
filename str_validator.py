@@ -54,17 +54,22 @@ class DiploidCalls(db.Model):
 
 @admin.route('/')
 def index():
-    print(current_app.config['ANALYSES'])
     return render_template("index.html", comparisons=current_app.config['COMPARISONS'].keys(), analyses=current_app.config['ANALYSES'])
 
 @admin.route('getbubbleplot')
 def get_bubbleplot():
     return render_template("bubbleplot.html")
+
+@admin.route('getbarplot')
+def get_barplot():
+    return render_template("barplot.html", min_bp_diff=current_app.config['MIN_BP_DIFF'], max_bp_diff=current_app.config['MAX_BP_DIFF'])
     
 @admin.route('getplot/<plot_type>')
 def get_plot(plot_type):
     if plot_type == "Bubble plot":
         return get_bubbleplot()
+    elif plot_type == "Bar plot":
+        return get_barplot()
     else:
         exit("Invalid plot type %s"%(plot_type))
 
@@ -90,15 +95,11 @@ def get_diff_info():
     diff_counts = collections.defaultdict(int)
     for item in res:
         diff_counts[item[0]-item[1]] += item[2]
-    return jsonify(result=zip(diff_counts.items()))
+    return jsonify(result=diff_counts.items())
 
-@admin.route('getalignments/<x>/<y>')
-def get_alignments(x, y):
-    x, y   = int(x), int(y)
-    schema = current_app.config['ACTIVE_DB']
-    res = db.session.query(schema).filter(schema.total_one == x, schema.total_two == y)
+def extract_alignments(query):
     chroms, starts, stops, sample_lists, annot_lists = [], [], [], [], []
-    for record in res:
+    for record in query:
         chroms.append(record.chrom)
         starts.append(str(record.start))
         stops.append(str(record.end))
@@ -113,6 +114,26 @@ def get_alignments(x, y):
     response = make_response(res)
     response.headers.add('Access-Control-Allow-Origin','*')
     return response
+
+
+@admin.route('getbubblealignments/<x>/<y>')
+def get_bubble_alignments(x, y):
+    x, y   = int(x), int(y)
+    schema = current_app.config['ACTIVE_DB']
+    res = db.session.query(schema).filter(schema.total_one == x, schema.total_two == y)
+    return extract_alignments(res)
+
+@admin.route('getdiffalignments/<diff>')
+def get_diff_alignments(diff):
+    diff   = int(diff)
+    schema = current_app.config['ACTIVE_DB']
+    if diff == current_app.config['MIN_BP_DIFF']:
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two <= diff)
+    elif diff == current_app.config['MAX_BP_DIFF']:
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two >= diff)
+    else:
+        res = db.session.query(schema).filter(schema.total_one - schema.total_two == diff)
+    return extract_alignments(res)
 
 @admin.route('set_comparison/<comp>')
 def set_comparison(comp):
@@ -160,6 +181,8 @@ def create_app(bams, bais, fasta_dir, vizalign):
                     'js/bootstrap.min.js',
                     'js/bootstrap-select.js',
                     'js/bubbleplot.js',
+                    'js/barplot.js',
+                    'js/nv.d3.js',
                     filters='jsmin', output='gen/packed.js')
     assets.register('str_validator_js_all', js)
 
@@ -167,6 +190,8 @@ def create_app(bams, bais, fasta_dir, vizalign):
     app.config['ACTIVE_DB']               = HaploidCalls
     app.config['COMPARISONS']             = {"Father-son YSTRs" : HaploidCalls, "Marshfield" : DiploidCalls}
     app.config['ANALYSES']                = ["Bubble plot", "Bar plot"]
+    app.config['MIN_BP_DIFF'] = -12
+    app.config['MAX_BP_DIFF'] = 12
     db.init_app(app)
     with app.app_context():
         db.create_all()

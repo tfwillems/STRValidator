@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+
+<script>
+  function update_barplot(){
+  var checked = document.getElementById("zero_check").checked;
+  d3.select('#bar_plot_container svg > *').remove(); 
+  new_draw_barplot(checked, {{ min_bp_diff }}, {{ max_bp_diff }});
+  }
+</script>
+
+
+<div id="bar_plot_container">
+  <svg style="height: 300px; width: 500px;"></svg>
+  <form action="">
+    <input type="checkbox" id="zero_check" onchange = "update_barplot()"> Display matching calls <br>
+  </form>
+</div>
+
+<script type="text/javascript">
+  document.getElementById("zero_check").checked = true;
+  update_barplot();
+</script>
+
+</body>
+</html>
